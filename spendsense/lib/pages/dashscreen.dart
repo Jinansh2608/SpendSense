@@ -64,9 +64,7 @@ class Dashscreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8)
                       ),
                       child: Center(child: Text("insights",
-                      style: TextStyle(
-                        fontSize: 12
-                      ),
+                      style: TextTheme.of(context).titleLarge
                       )),
                     ),
                   )

@@ -50,7 +50,7 @@ static lightTextTheme(){
       color:  const Color.fromARGB(255, 239, 241, 229),
     ),
     titleLarge: const TextStyle().copyWith(
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: FontWeight.bold,
       color:  const Color.fromARGB(255, 239, 241, 229),
     ),
