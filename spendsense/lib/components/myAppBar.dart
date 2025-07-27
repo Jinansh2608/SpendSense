@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spendsense/constants/colors/colors.dart';
+import 'package:spendsense/pages/Dashscreen.dart';
 
 class Myappbar extends StatefulWidget {
   const Myappbar({super.key});
@@ -20,7 +21,7 @@ class _MyappbarState extends State<Myappbar> {
               expandedHeight: (MediaQuery.of(context).size.height)*0.57,
               pinned: true,
               flexibleSpace: const FlexibleSpaceBar(
-              background: Placeholder(),
+              background: Dashscreen(),
               ),
               bottom: PreferredSize(preferredSize: const Size.fromHeight(25),
                child: Container(
