@@ -31,7 +31,7 @@ static lightTextTheme(){
       color: const Color.fromARGB(255, 35, 35, 33),
     ),
     labelMedium: const TextStyle().copyWith(
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: FontWeight.normal,
       color: const Color.fromARGB(255, 35, 35, 33),
     )
@@ -65,7 +65,7 @@ static lightTextTheme(){
       color:  const Color.fromARGB(255, 239, 241, 229),
     ),
     labelMedium: const TextStyle().copyWith(
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: FontWeight.normal,
       color:  const Color.fromARGB(255, 239, 241, 229),
     )
