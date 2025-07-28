@@ -4,19 +4,17 @@ import os
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.decomposition import PCA
-
 from sentence_transformers import SentenceTransformer
 from imblearn.over_sampling import SMOTE
 from tqdm import tqdm
 
 # === CONFIGURATION ===
-INPUT_FILE = "datasets/SMS_Categorized_Cleaned_Final_Reclassified.xlsx"
+INPUT_FILE = "datasets/SMS_Categorized_Expanded_Final.xlsx"
 MODEL_PATH = "models/category_classifier.pkl"
 ENCODER_PATH = "models/label_encoder.pkl"
 
