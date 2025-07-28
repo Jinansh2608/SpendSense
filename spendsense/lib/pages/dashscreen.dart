@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spendsense/components/animatedArc.dart';
 import 'package:spendsense/components/customArcPainter.dart';
 import 'package:spendsense/constants/colors/colors.dart';
 
@@ -32,10 +33,7 @@ class Dashscreen extends StatelessWidget {
                Container(
                 width:( MediaQuery.of(context).size.width)*0.74,
                 height: ( MediaQuery.of(context).size.height)*0.13,
-                child: CustomPaint(
-                  painter: CustomArcPainter( start: 0,
-    end: (spending / totalbudget) * 290,),
-                ),
+                child: ArcIndicator(value: 0.6)
                ),
           
               ],
