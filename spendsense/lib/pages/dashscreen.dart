@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spendsense/components/animatedArc.dart';
 import 'package:spendsense/components/customArcPainter.dart';
 import 'package:spendsense/constants/colors/colors.dart';
+import 'package:spendsense/pages/Insights.dart';
 
 class Dashscreen extends StatelessWidget {
   const Dashscreen({super.key});
@@ -33,7 +34,7 @@ class Dashscreen extends StatelessWidget {
                Container(
                 width:( MediaQuery.of(context).size.width)*0.74,
                 height: ( MediaQuery.of(context).size.height)*0.13,
-                child: ArcIndicator(value: 0.6)
+                child: ArcIndicator(value: 0.5)
                ),
           
               ],
@@ -55,7 +56,7 @@ class Dashscreen extends StatelessWidget {
                   SizedBox(height: ( MediaQuery.of(context).size.height)*0.097,),
                   GestureDetector(
                     onTap: () {
-                      // Navigator.push(context, MaterialPageRoute(builder: (context)=>MyInsights()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context)=>Insights()));
                     },
                     child: Container(
                      

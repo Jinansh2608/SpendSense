@@ -36,7 +36,7 @@ class _MyappbarState extends State<Myappbar> {
                   children: List.generate(3,(index) { //the entire purpose of using the list.generate method is to get yhe index once get that
                     final isselected = index == selectedIndex;
                     return Padding(
-                      padding: const EdgeInsets.only(top: 28,left: 10,right: 10),
+                      padding: const EdgeInsets.only(top: 28,left: 5,right: 5),
                       child: TextButton(
                         onPressed: (){
                           setState(() {
