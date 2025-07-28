@@ -55,7 +55,7 @@ static lightTextTheme(){
       color:  const Color.fromARGB(255, 239, 241, 229),
     ),
     titleMedium: const TextStyle().copyWith(
-      fontSize: 16,
+      fontSize: 32,
       fontWeight: FontWeight.w500,
       color:  const Color.fromARGB(255, 239, 241, 229),
     ),

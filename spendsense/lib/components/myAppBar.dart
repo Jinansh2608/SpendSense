@@ -47,9 +47,9 @@ class _MyappbarState extends State<Myappbar> {
                         style: TextButton.styleFrom(
                           backgroundColor: isselected ? Ycolor.primarycolor50 : Theme.of(context).colorScheme.background,
                           foregroundColor: isselected ? Theme.of(context).colorScheme.background : Ycolor.primarycolor50,
-                          padding: EdgeInsets.symmetric(horizontal: 16,vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 18,vertical: 8),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(112),
+                              borderRadius: BorderRadius.circular(12),
                                 ),
                                 textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                         ),

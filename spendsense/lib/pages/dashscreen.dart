@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spendsense/components/customArcPainter.dart';
+import 'package:spendsense/constants/colors/colors.dart';
 
 class Dashscreen extends StatelessWidget {
   const Dashscreen({super.key});
@@ -7,6 +8,8 @@ class Dashscreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
+    int spending = 100;
+    int totalbudget = 1000;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       // crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +33,8 @@ class Dashscreen extends StatelessWidget {
                 width:( MediaQuery.of(context).size.width)*0.74,
                 height: ( MediaQuery.of(context).size.height)*0.13,
                 child: CustomPaint(
-                  painter: CustomArcPainter(),
+                  painter: CustomArcPainter( start: 0,
+    end: (spending / totalbudget) * 290,),
                 ),
                ),
           
@@ -60,7 +64,7 @@ class Dashscreen extends StatelessWidget {
                       width: (MediaQuery.of(context).size.width)*0.3,
                       height: (MediaQuery.of(context).size.width)*0.08,
                       decoration: BoxDecoration(
-                         color: Colors.white24,
+                         color: Ycolor.whitee24,
                         borderRadius: BorderRadius.circular(8)
                       ),
                       child: Center(child: Text("insights",

@@ -16,5 +16,5 @@ class Ycolor{
 
   static Color get whitee => const Color.fromARGB(255, 249, 250, 251);
   static Color get whitee80 => const Color.fromARGB(255, 231, 234, 238);
-  
+  static Color get whitee24 => const Color.fromARGB(60, 255, 255, 255);
  }
