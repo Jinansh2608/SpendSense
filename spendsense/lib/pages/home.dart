@@ -16,13 +16,13 @@ class Transactiontile extends StatelessWidget {
                     ),
                     
                   ),
-                  GestureDetector(
-                    onTap: () =>  Navigator.push(context, MaterialPageRoute(builder: (context)=>infoPanel())),
-                    child: SliverList(
-                      
-                      delegate: SliverChildBuilderDelegate((context,index){
-                        return Padding(
-                          padding: EdgeInsets.all(3),
+                  SliverList(
+                    
+                    delegate: SliverChildBuilderDelegate((context,index){
+                      return Padding(
+                        padding: EdgeInsets.all(3),
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context)=>infoPanel())),
                           child: ListTile(
                            
                             title: Text(tittttle,
@@ -37,11 +37,11 @@ class Transactiontile extends StatelessWidget {
                               fontSize: 24
                             ),),
                           ),
-                        );
-                      },
-                      childCount: 20)
-                      ),
-                  ),
+                        ),
+                      );
+                    },
+                    childCount: 20)
+                    ),
                     SliverToBoxAdapter(
                       child: Container(
                         height: (MediaQuery.of(context).size.height*0.15),
