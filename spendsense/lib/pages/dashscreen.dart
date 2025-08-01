@@ -61,7 +61,7 @@ class Dashscreen extends StatelessWidget {
                     child: Container(
                      
                       width: (MediaQuery.of(context).size.width)*0.3,
-                      height: (MediaQuery.of(context).size.width)*0.08,
+                      height: (MediaQuery.of(context).size.width)*0.1,
                       decoration: BoxDecoration(
                          color: Ycolor.whitee24,
                         borderRadius: BorderRadius.circular(8)

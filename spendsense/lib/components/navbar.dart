@@ -28,6 +28,7 @@ class MyNavbar extends StatelessWidget {
               elevation: 0,
               selectedIndex: controller.selectedIndex.value,
               onDestinationSelected: (index) => controller.selectedIndex.value = index,
+              indicatorColor: Ycolor.primarycolor50,
               destinations: const [
                 NavigationDestination(icon: Icon(IconlyBold.home), label: "Home"),
                 NavigationDestination(icon: Icon(IconlyBold.activity), label: "Analysis"),
