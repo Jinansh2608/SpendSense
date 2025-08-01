@@ -5,6 +5,7 @@ import 'package:spendsense/components/myAppBar.dart';
 import 'package:spendsense/components/navbar.dart';
 import 'package:spendsense/components/navigationcontroller.dart';
 import 'package:spendsense/constants/colors/colors.dart';
+import 'package:spendsense/pages/home.dart';
 
 
 class dashboard extends StatelessWidget {
@@ -13,13 +14,14 @@ class dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      Container(child: Text("home"),),
+      Transactiontile(tittttle: "tittttle"),
       Container(child: Text("analysis"),),
       Container(child: Text("bills"),),
       Container(child: Text("profile"),)
     ];
     final controller = Get.put(navigationController());
     return Scaffold(
+      extendBody: true,
       bottomNavigationBar: MyNavbar(),
       body: NestedScrollView(
         headerSliverBuilder: (context,bool innerBoxIsScrolled){

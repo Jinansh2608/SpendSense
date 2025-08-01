@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spendsense/Theme/Ytheme.dart';
-import 'package:spendsense/pages/dashboars.dart';
+import 'package:spendsense/pages/dashboard.dart';
 
 void main() {
   runApp(const PayNest());
