@@ -19,9 +19,9 @@ class dashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       Home1(),
-      Analysis(),
-      Bills(),
-      Profile(),
+      AnalysisPage(),
+      BillsPage(),
+      ProfilePage(),
     ];
     final controller = Get.put(navigationController());
     return Obx(
