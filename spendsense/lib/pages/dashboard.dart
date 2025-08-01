@@ -5,7 +5,11 @@ import 'package:spendsense/components/myAppBar.dart';
 import 'package:spendsense/components/navbar.dart';
 import 'package:spendsense/components/navigationcontroller.dart';
 import 'package:spendsense/constants/colors/colors.dart';
-import 'package:spendsense/pages/home.dart';
+import 'package:spendsense/pages/analysis.dart';
+import 'package:spendsense/pages/bills.dart';
+import 'package:spendsense/pages/home1.dart';
+import 'package:spendsense/pages/profile.dart';
+import 'package:spendsense/pages/transactionTile.dart';
 
 
 class dashboard extends StatelessWidget {
@@ -14,21 +18,14 @@ class dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      Transactiontile(tittttle: "tittttle"),
-      Container(child: Text("analysis"),),
-      Container(child: Text("bills"),),
-      Container(child: Text("profile"),)
+      Home1(),
+      Analysis(),
+      Bills(),
+      Profile(),
     ];
     final controller = Get.put(navigationController());
-    return Scaffold(
-      extendBody: true,
-      bottomNavigationBar: MyNavbar(),
-      body: NestedScrollView(
-        headerSliverBuilder: (context,bool innerBoxIsScrolled){
-          return [const Myappbar()];
-        }
-
-        , body: Obx(()=> pages[controller.selectedIndex.value])),
+    return Obx(
+      ()=> pages[controller.selectedIndex.value]
     );
   }
 }
