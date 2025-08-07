@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'package:spendsense/Theme/Ytheme.dart';
 import 'package:spendsense/pages/dashboard.dart';
-import 'package:spendsense/components/SMSsaver.dart'; // <-- Import your SMS saver
+import 'package:spendsense/pages/login_page.dart';
+import 'package:spendsense/components/sms_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const PayNest());
 }
 
@@ -22,12 +30,10 @@ class _PayNestState extends State<PayNest> {
   }
 
   void _fetchSMSInBackground() {
-    // This avoids blocking the UI thread.
     Future.microtask(() async {
-      final smsSaver = SMSSaver();
-      await smsSaver.saveTransactionSMS();
-      // You can print or log how many were saved
-      print("Fetched ${smsSaver.savedMessages.length} transactional SMS.");
+      final smsService = SMSService();
+      await smsService.saveTransactionSMS();
+      print("Fetched ${smsService.savedMessages.length} transactional SMS.");
     });
   }
 
@@ -35,11 +41,15 @@ class _PayNestState extends State<PayNest> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.dark,
-      title: "PayNest: frictionless budgeting app",
+      title: "PayNest",
       theme: Ytheme.lightTheme,
       darkTheme: Ytheme.darkTheme,
-      home: dashboard(),
+      themeMode: ThemeMode.dark,
+      initialRoute: FirebaseAuth.instance.currentUser == null ? '/' : '/dashboard',
+      routes: {
+        '/': (context) => const LoginPage(),
+        '/dashboard': (context) => const dashboard(),
+      },
     );
   }
 }

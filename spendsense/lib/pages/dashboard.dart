@@ -11,10 +11,9 @@ import 'package:spendsense/pages/home1.dart';
 import 'package:spendsense/pages/profile.dart';
 import 'package:spendsense/pages/transactionTile.dart';
 
-
 class dashboard extends StatelessWidget {
   const dashboard({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
@@ -24,8 +23,6 @@ class dashboard extends StatelessWidget {
       ProfilePage(),
     ];
     final controller = Get.put(navigationController());
-    return Obx(
-      ()=> pages[controller.selectedIndex.value]
-    );
+    return Obx(() => pages[controller.selectedIndex.value]);
   }
 }
