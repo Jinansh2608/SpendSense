@@ -33,9 +33,16 @@ class _PayNestState extends State<PayNest> {
     Future.microtask(() async {
       final smsService = SMSService();
       await smsService.saveTransactionSMS();
+
       print("Fetched ${smsService.savedMessages.length} transactional SMS.");
+
+      // ✅ Send to Flask API after reading SMS
+      final user = FirebaseAuth.instance.currentUser;
+      final uid = user?.uid ?? "test-user-uid"; // fallback if user not logged in
+      await smsService.sendTransactionSMS(uid);
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -45,11 +52,22 @@ class _PayNestState extends State<PayNest> {
       theme: Ytheme.lightTheme,
       darkTheme: Ytheme.darkTheme,
       themeMode: ThemeMode.dark,
-      initialRoute: FirebaseAuth.instance.currentUser == null ? '/' : '/dashboard',
-      routes: {
-        '/': (context) => const LoginPage(),
-        '/dashboard': (context) => const dashboard(),
-      },
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (snapshot.hasData) {
+            return const dashboard(); // ✅ If signed in
+          }
+
+          return const LoginPage(); // ❌ If not signed in
+        },
+      ),
     );
   }
 }

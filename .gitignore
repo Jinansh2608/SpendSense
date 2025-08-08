@@ -1,0 +1,46 @@
+# IDE & OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Python cache & build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+
+# Dataset & output files
+*.csv
+*.xlsx
+*.xls
+*.json
+*.log
+
+# Ignore models unless you explicitly commit them
+/models/*.pkl
+/models/*.h5
+/models/*.joblib
+
+# Ignore backend data
+backend/categorized_sms.csv
+backend/models/datasets/
+backend/op/*.csv
+backend/op/*.xlsx
+
+# Node (if frontend is added)
+node_modules/
+
+# Environment variables
+*.env
+.env.*
