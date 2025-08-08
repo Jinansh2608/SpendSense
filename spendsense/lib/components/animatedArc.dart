@@ -52,7 +52,7 @@ class _ArcIndicatorState extends State<ArcIndicator> with SingleTickerProviderSt
         return RepaintBoundary(
           child: CustomPaint(
             painter: CustomArcPainter(end: endAngle),
-            
+
           ),
         );
       },
