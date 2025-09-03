@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+*.env
+
+# Logs
+*.log
+
+# Cache
+*.sqlite3
+*.db
+instance/
+.cache/
+*.egg-info/
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dll
+*.dylib
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temporary files
+*.bak
+*.swp
+*.tmp
+
+# Hugging Face cache
+huggingface/
