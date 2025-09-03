@@ -1,14 +1,9 @@
-// === UI ENTRY POINT ===
-// lib/pages/analysis_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:spendsense/components/analysisButton.dart';
 import 'package:spendsense/components/chartContainer.dart';
 import 'package:spendsense/components/navbar.dart';
 import 'package:spendsense/components/suggestions.dart';
 import 'package:spendsense/components/topCategories.dart';
-
 
 class AnalysisPage extends StatefulWidget {
   const AnalysisPage({super.key});
@@ -45,7 +40,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
             SizedBox(height: height * 0.02),
             AnalysisButtons(isWeekly: isWeekly, onToggle: handleToggle),
             SizedBox(height: height * 0.03),
-            const TopCategories(),
+            const TopCategories(), // ✅ No uid parameter
             SizedBox(height: height * 0.03),
             const SuggestionBox(),
           ],

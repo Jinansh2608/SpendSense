@@ -71,7 +71,7 @@ class _Home1State extends State<Home1> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 3,
       child: ListTile(
-        title: Text('₹$amount'),
+        title: Text('₹$amount | $type'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
