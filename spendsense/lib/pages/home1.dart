@@ -35,19 +35,27 @@ class _Home1State extends State<Home1> {
       }
 
       final uid = user.uid;
-      final url = Uri.parse('http://192.168.1.105:5000/records/$uid');
+      final url = Uri.parse('http://192.168.1.103:5000/api/records/$uid');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          transactions =
-              data.map((item) => item as Map<String, dynamic>).toList();
-          isLoading = false;
-        });
+        final decoded = json.decode(response.body);
+
+        if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          final List<dynamic> data = decoded['data'];
+          setState(() {
+            transactions = data.map((item) => item as Map<String, dynamic>).toList();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            errorMessage = 'Invalid API response';
+            isLoading = false;
+          });
+        }
       } else {
         setState(() {
-          errorMessage = 'Failed to load data';
+          errorMessage = 'Failed to load data (Status ${response.statusCode})';
           isLoading = false;
         });
       }
@@ -98,11 +106,11 @@ class _Home1State extends State<Home1> {
             : errorMessage.isNotEmpty
             ? Center(child: Text(errorMessage))
             : ListView.builder(
-          itemCount: transactions.length,
-          itemBuilder: (context, index) {
-            return buildTransactionTile(transactions[index]);
-          },
-        ),
+                itemCount: transactions.length,
+                itemBuilder: (context, index) {
+                  return buildTransactionTile(transactions[index]);
+                },
+              ),
       ),
     );
   }

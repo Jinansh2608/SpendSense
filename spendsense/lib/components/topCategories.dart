@@ -16,7 +16,7 @@ class _TopCategoriesState extends State<TopCategories> {
   List<Map<String, dynamic>> categories = [];
   String? errorMessage;
 
-  static const String apiBaseUrl = "http://192.168.1.105:5001";
+  static const String apiBaseUrl = "http://192.168.1.103:5000/api";
 
   String? uid;
 

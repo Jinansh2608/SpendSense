@@ -98,7 +98,7 @@ class SMSService {
       };
     }).toList();
 
-    final uri = Uri.parse("http://192.168.1.105:5000/predict-bulk");
+    final uri = Uri.parse("http://192.168.1.103:5000/api/predict-bulk");
 
     try {
       final response = await http.post(

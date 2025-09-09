@@ -1,15 +1,16 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import os
 import logging
+import os
 
-# === Setup Logging ===
-logging.basicConfig(level=logging.INFO)
+# Logger
 logger = logging.getLogger(__name__)
 
-# === Load Environment Variables ===
+# Blueprint
+categories_bp = Blueprint('categories', __name__)
+
+# DB Config
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME"),
     "user": os.getenv("DB_USER"),
@@ -18,16 +19,12 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT"),
 }
 
-# === Initialize Flask App ===
-app = Flask(__name__)
-CORS(app)
-
-# === Database Connection ===
+# DB Connection
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
 # === API Endpoint: Category-wise Spending ===
-@app.route('/category-spending', methods=['GET'])
+@categories_bp.route('/category-spending', methods=['GET'])
 def category_spending():
     uid = request.args.get('uid')
     txn_type = request.args.get('type')  # credit or debit
@@ -41,12 +38,12 @@ def category_spending():
     query = """
         SELECT category, SUM(amount) AS total_spent
         FROM sms_records
-        WHERE uid = %s
+        WHERE uid = %s AND txn_type IN ('credit', 'debit')
     """
     params = [uid]
 
     if txn_type in ['credit', 'debit']:
-        query += " AND type = %s"
+        query += " AND txn_type = %s"
         params.append(txn_type)
 
     if period == 'weekly':
@@ -75,6 +72,3 @@ def category_spending():
     except Exception as e:
         logger.error(f"Error fetching category spending: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5001, debug=True)

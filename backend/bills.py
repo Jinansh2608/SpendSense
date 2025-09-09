@@ -3,7 +3,7 @@ import re
 import uuid
 import requests
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Blueprint, request, jsonify
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -25,9 +25,10 @@ HF_API_KEY = os.getenv('HF_API_KEY')
 HF_MODEL = os.getenv('HF_MODEL', 'facebook/bart-large-mnli')
 HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
-app = Flask(__name__)
+# Create Blueprint
+bills_bp = Blueprint('bills', __name__)
 
-# Connect to Postgres
+# Database connection
 def get_db_connection():
     conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
     return conn
@@ -47,8 +48,8 @@ def predict_category(text, sender):
         return result['labels'][0]
     return "Other"
 
-# Route: Parse SMS and save bills
-@app.route('/bills/parse_sms', methods=['POST'])
+# ✅ Route: Parse SMS and save bills
+@bills_bp.route('/bills/parse_sms', methods=['POST'])
 def parse_sms():
     data = request.json
     uid = data['uid']
@@ -62,7 +63,7 @@ def parse_sms():
         body = msg.get('body', '')
         sender = msg.get('sender', '')
 
-        # Robust regex for amount and date
+        # Regex for amount and date
         match = re.search(
             r'(?P<amount>\d+\.?\d*)\s*(?:INR|₹)?(?:\s*is)?\s*(?:due|due date|due on)\s*(?P<date>\d{2}[-/]\d{2}[-/]\d{4})',
             body,
@@ -99,8 +100,8 @@ def parse_sms():
 
     return jsonify({'parsed_bills': new_bills})
 
-# Route: Get bills for a user
-@app.route('/bills', methods=['GET'])
+# ✅ Route: Get bills for a user
+@bills_bp.route('/bills', methods=['GET'])
 def get_bills():
     uid = request.args.get('uid')
     filter_status = request.args.get('filter', 'All')
@@ -118,6 +119,3 @@ def get_bills():
     conn.close()
 
     return jsonify(bills)
-
-if __name__ == "__main__":
-    app.run(debug=True)

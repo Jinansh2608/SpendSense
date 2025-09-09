@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:telephony/telephony.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:spendsense/components/navbar.dart';
 import 'package:spendsense/constants/colors/colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BillsPage extends StatefulWidget {
   const BillsPage({super.key});
@@ -12,130 +13,161 @@ class BillsPage extends StatefulWidget {
 }
 
 class _BillsPageState extends State<BillsPage> {
-  final Telephony telephony = Telephony.instance;
-
-  List<Map<String, dynamic>> bills = [];
+  String selectedFilter = 'All';
   bool isLoading = true;
 
-  // Trusted senders
-  final List<String> trustedSenders = [
-    'ELECTRICITY',
-    'WATERBILL',
-    'BSNL',
-    'PHONEPAY',
-    'BANK',
-    'DMRC',
-  ];
+  List<Map<String, dynamic>> bills = [];
 
-  // Keywords to identify bills
-  final List<String> billKeywords = [
-    'bill',
-    'due',
-    'amount',
-    'payment'
-  ];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final String baseUrl = "http://192.168.1.100:5000"; // ✅ Your Flask backend IP
 
   @override
   void initState() {
     super.initState();
-    fetchAndParseSMS('user_123'); // replace with actual UID
+    fetchBills();
   }
 
-  Future<void> fetchAndParseSMS(String uid) async {
-    List<SmsMessage> messages = await telephony.getInboxSms(
-      columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE],
-      sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
-    );
+  /// ✅ Get Firebase UID
+  String? getUid() {
+    final user = _auth.currentUser;
+    return user?.uid;
+  }
 
-    // Filter messages by trusted senders
-    List<SmsMessage> filteredBySender = messages.where((sms) {
-      if (sms.address == null || sms.body == null) return false;
-      String sender = sms.address!.toUpperCase();
-      return trustedSenders.any((trusted) => sender.contains(trusted.toUpperCase()));
-    }).toList();
-
-    // Further filter messages by keywords and regex
-    List<Map<String, dynamic>> billMessages = [];
-    for (var sms in filteredBySender) {
-      String body = sms.body!.toLowerCase();
-      if (billKeywords.any((keyword) => body.contains(keyword))) {
-        final amountMatch = RegExp(r'(\d+\.?\d*)\s*(?:INR|₹)?', caseSensitive: false).firstMatch(body);
-        final dateMatch = RegExp(r'(\d{2}[-/]\d{2}[-/]\d{4})').firstMatch(body);
-
-        if (amountMatch != null && dateMatch != null) {
-          billMessages.add({
-            'sender': sms.address,
-            'body': sms.body,
-            'date': DateTime.fromMillisecondsSinceEpoch(sms.date!).toIso8601String(),
-          });
-        }
-      }
-    }
-
-    if (billMessages.isEmpty) {
-      setState(() {
-        bills = [];
-        isLoading = false;
-      });
+  /// ✅ Fetch bills from API based on filter
+  Future<void> fetchBills() async {
+    final uid = getUid();
+    if (uid == null) {
+      print("User not logged in");
+      setState(() => isLoading = false);
       return;
     }
 
-    // Send filtered SMS to backend API
-    final response = await http.post(
-      Uri.parse('https://yourapi.com/bills/parse_sms'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'uid': uid, 'messages': billMessages}),
-    );
+    setState(() => isLoading = true);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        bills = List<Map<String, dynamic>>.from(data['parsed_bills']);
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        bills = [];
-        isLoading = false;
-      });
-      print('Failed to send SMS to API. Status: ${response.statusCode}');
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/bills?uid=$uid&filter=$selectedFilter'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          bills = List<Map<String, dynamic>>.from(data);
+          isLoading = false;
+        });
+      } else {
+        print("Failed to fetch bills: ${response.statusCode}");
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      print("Error fetching bills: $e");
+      setState(() => isLoading = false);
     }
+  }
+
+  /// ✅ Handle filter button click
+  void onFilterChange(String filter) {
+    setState(() => selectedFilter = filter);
+    fetchBills();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+
     return Scaffold(
+      bottomNavigationBar: MyNavbar(),
       appBar: AppBar(title: const Text('Your Bills')),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : bills.isEmpty
-          ? const Center(child: Text('No bills found.'))
-          : ListView.builder(
-        itemCount: bills.length,
-        itemBuilder: (context, index) {
-          final bill = bills[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: ListTile(
-              leading: Icon(
-                bill['status'] == 'Paid' ? Icons.check_circle : Icons.warning,
-                color: bill['status'] == 'Paid' ? Colors.green : Colors.red,
-              ),
-              title: Text(bill['category'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Due: ${bill['due_date']}'),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('₹${bill['amount'] ?? '0'}'),
-                  Text(bill['status'] ?? 'Unpaid',
-                      style: TextStyle(
-                          color: bill['status'] == 'Paid' ? Colors.green : Colors.red)),
-                ],
-              ),
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: height * 0.02),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: ['All', 'Paid', 'Unpaid'].map((filter) {
+                final isSelected = selectedFilter == filter;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.01),
+                  child: ElevatedButton(
+                    onPressed: () => onFilterChange(filter),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected ? Ycolor.secondarycolor : Colors.grey[300],
+                      foregroundColor: isSelected ? Colors.white : Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: width * 0.025, vertical: height * 0.008),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(filter),
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        },
+            SizedBox(height: height * 0.02),
+
+            /// ✅ Show loading indicator or bills list
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : bills.isEmpty
+                  ? const Center(child: Text("No bills found"))
+                  : ListView.builder(
+                itemCount: bills.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == bills.length) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: height * 0.012),
+                      child: GestureDetector(
+                        onTap: () {
+                          // Add your 'Add New Bill' functionality here
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(width * 0.04),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Ycolor.secondarycolor),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add, color: Ycolor.secondarycolor),
+                              const SizedBox(width: 8),
+                              Text('Add New Bill',
+                                  style: TextStyle(
+                                      color: Ycolor.secondarycolor, fontWeight: FontWeight.w500))
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  final bill = bills[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: height * 0.008),
+                    child: ListTile(
+                      leading: Icon(
+                        bill['status'] == 'Paid' ? Icons.check_circle : Icons.warning,
+                        color: bill['status'] == 'Paid' ? Colors.green : Colors.red,
+                      ),
+                      title: Text(bill['name'] ?? 'Unknown',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('Due: ${bill['due_date'] ?? ''}'),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('₹${bill['amount'] ?? 0}', style: TextStyle(fontSize: width * 0.04)),
+                          Text(bill['status'] ?? '',
+                              style: TextStyle(
+                                  fontSize: width * 0.03,
+                                  color: bill['status'] == 'Paid' ? Colors.green : Colors.red)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
