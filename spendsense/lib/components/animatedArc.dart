@@ -10,7 +10,8 @@ class ArcIndicator extends StatefulWidget {
   State<ArcIndicator> createState() => _ArcIndicatorState();
 }
 
-class _ArcIndicatorState extends State<ArcIndicator> with SingleTickerProviderStateMixin {
+class _ArcIndicatorState extends State<ArcIndicator>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -23,15 +24,20 @@ class _ArcIndicatorState extends State<ArcIndicator> with SingleTickerProviderSt
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _animation = Tween<double>(begin: 0, end: widget.value).animate(_controller);
+    _animation =
+        Tween<double>(begin: 0, end: widget.value).animate(_controller);
     _controller.forward();
+    _previousValue = widget.value;
   }
 
   @override
   void didUpdateWidget(covariant ArcIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
-      _animation = Tween<double>(begin: _previousValue, end: widget.value).animate(_controller);
+      _animation = Tween<double>(
+        begin: _previousValue,
+        end: widget.value,
+      ).animate(_controller);
       _controller.forward(from: 0);
       _previousValue = widget.value;
     }
@@ -49,10 +55,11 @@ class _ArcIndicatorState extends State<ArcIndicator> with SingleTickerProviderSt
       animation: _animation,
       builder: (context, child) {
         final double endAngle = _animation.value * 290; // Map to arc
-        return RepaintBoundary(
+        return SizedBox(
+          width: 220,
+          height: 220,
           child: CustomPaint(
             painter: CustomArcPainter(end: endAngle),
-
           ),
         );
       },
