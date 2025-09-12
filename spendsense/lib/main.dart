@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+import 'package:spendsense/auth/authpage.dart';
+import 'auth/authcontroller.dart';
 import 'firebase_options.dart';
 import 'package:spendsense/Theme/Ytheme.dart';
 import 'package:spendsense/pages/dashboard.dart';
@@ -9,9 +12,11 @@ import 'package:spendsense/components/sms_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  Get.put(AuthController()); 
   runApp(const PayNest());
 }
 
@@ -65,7 +70,7 @@ class _PayNestState extends State<PayNest> {
             return const dashboard(); // ✅ If signed in
           }
 
-          return const LoginPage(); // ❌ If not signed in
+          return  AuthPage(); // ❌ If not signed in
         },
       ),
     );

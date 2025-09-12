@@ -20,13 +20,13 @@ class SMSService {
   }
 
   /// Save updated sent message IDs to SharedPreferences
-  Future<void> _saveSentMessageIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      'sent_sms_ids',
-      _sentMessageIds.map((id) => id.toString()).toList(),
-    );
-  }
+    Future<void> _saveSentMessageIds() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        'sent_sms_ids',
+        _sentMessageIds.map((id) => id.toString()).toList(),
+      );
+    }
 
   /// Filters and stores transactional SMS messages from last 90 days
   Future<void> saveTransactionSMS() async {
@@ -41,12 +41,12 @@ class SMSService {
     final int ninetyDaysAgo = DateTime.now()
         .subtract(const Duration(days: 90))
         .millisecondsSinceEpoch;
-
-    final List<SmsMessage> messages = await telephony.getInboxSms(
-      columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.ID],
-      filter: SmsFilter.where(SmsColumn.DATE).greaterThan(ninetyDaysAgo.toString()),
-      sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
-    );
+      //this will load the entire sms inbox and takes address body and date and id into consideration then filters to last 90 days then sorts them  
+      final List<SmsMessage> messages = await telephony.getInboxSms(
+        columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.ID],
+        filter: SmsFilter.where(SmsColumn.DATE).greaterThan(ninetyDaysAgo.toString()),
+        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
+      );
 
     _savedMessages.clear();
 
@@ -77,7 +77,7 @@ class SMSService {
           body.contains("spent") ||
           body.contains("purchase") ||
           body.contains("amount");
-
+      //returns the new message only
       return (isFromBank || containsKeywords) && !_sentMessageIds.contains(msg.id);
     }));
 
