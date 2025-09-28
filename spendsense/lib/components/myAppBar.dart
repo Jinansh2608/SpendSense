@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:spendsense/auth/authcontroller.dart';
-import 'package:spendsense/auth/authpage.dart';
-import 'package:spendsense/components/logout.dart';
 import 'package:spendsense/constants/colors/colors.dart';
 import 'package:spendsense/pages/Dashscreen.dart';
 
 class Myappbar extends StatefulWidget {
-  const Myappbar({super.key});
+  final double arcValue;
+  const Myappbar({super.key, required this.arcValue});
 
   @override
   State<Myappbar> createState() => _MyappbarState();
@@ -52,7 +50,7 @@ class _MyappbarState extends State<Myappbar> {
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         background: Center( // ✅ keeps Dashscreen centered
-          child: const Dashscreen(),
+          child: Dashscreen(arcValue: widget.arcValue),
         ),
       ),
       bottom: PreferredSize(

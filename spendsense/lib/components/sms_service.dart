@@ -20,13 +20,13 @@ class SMSService {
   }
 
   /// Save updated sent message IDs to SharedPreferences
-    Future<void> _saveSentMessageIds() async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(
-        'sent_sms_ids',
-        _sentMessageIds.map((id) => id.toString()).toList(),
-      );
-    }
+  Future<void> _saveSentMessageIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      'sent_sms_ids',
+      _sentMessageIds.map((id) => id.toString()).toList(),
+    );
+  }
 
   /// Filters and stores transactional SMS messages from last 90 days
   Future<void> saveTransactionSMS() async {
@@ -41,45 +41,57 @@ class SMSService {
     final int ninetyDaysAgo = DateTime.now()
         .subtract(const Duration(days: 90))
         .millisecondsSinceEpoch;
-      //this will load the entire sms inbox and takes address body and date and id into consideration then filters to last 90 days then sorts them  
-      final List<SmsMessage> messages = await telephony.getInboxSms(
-        columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.ID],
-        filter: SmsFilter.where(SmsColumn.DATE).greaterThan(ninetyDaysAgo.toString()),
-        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
-      );
+    //this will load the entire sms inbox and takes address body and date and id into consideration then filters to last 90 days then sorts them
+    final List<SmsMessage> messages = await telephony.getInboxSms(
+      columns: [
+        SmsColumn.ADDRESS,
+        SmsColumn.BODY,
+        SmsColumn.DATE,
+        SmsColumn.ID,
+      ],
+      filter: SmsFilter.where(
+        SmsColumn.DATE,
+      ).greaterThan(ninetyDaysAgo.toString()),
+      sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
+    );
 
     _savedMessages.clear();
 
-    _savedMessages.addAll(messages.where((msg) {
-      final body = msg.body?.toLowerCase() ?? '';
-      final address = msg.address?.toLowerCase() ?? '';
+    _savedMessages.addAll(
+      messages.where((msg) {
+        final body = msg.body?.toLowerCase() ?? '';
+        final address = msg.address?.toLowerCase() ?? '';
 
-      final isFromBank = address.contains("bk") ||
-          address.contains("sbi") ||
-          address.contains("axis") ||
-          address.contains("hdfc") ||
-          address.contains("icici") ||
-          address.contains("bank") ||
-          address.contains("paytm") ||
-          address.contains("phonepe") ||
-          address.contains("gpay");
+        final isFromBank =
+            address.contains("bk") ||
+            address.contains("sbi") ||
+            address.contains("axis") ||
+            address.contains("hdfc") ||
+            address.contains("icici") ||
+            address.contains("bank") ||
+            address.contains("paytm") ||
+            address.contains("phonepe") ||
+            address.contains("gpay");
 
-      final containsKeywords = body.contains("debited") ||
-          body.contains("credited") ||
-          body.contains("txn") ||
-          body.contains("payment") ||
-          body.contains("inr") ||
-          body.contains("upi") ||
-          body.contains("account") ||
-          body.contains("withdrawn") ||
-          body.contains("transfer") ||
-          body.contains("sent to") ||
-          body.contains("spent") ||
-          body.contains("purchase") ||
-          body.contains("amount");
-      //returns the new message only
-      return (isFromBank || containsKeywords) && !_sentMessageIds.contains(msg.id);
-    }));
+        final containsKeywords =
+            body.contains("debited") ||
+            body.contains("credited") ||
+            body.contains("txn") ||
+            body.contains("payment") ||
+            body.contains("inr") ||
+            body.contains("upi") ||
+            body.contains("account") ||
+            body.contains("withdrawn") ||
+            body.contains("transfer") ||
+            body.contains("sent to") ||
+            body.contains("spent") ||
+            body.contains("purchase") ||
+            body.contains("amount");
+        //returns the new message only
+        return (isFromBank || containsKeywords) &&
+            !_sentMessageIds.contains(msg.id);
+      }),
+    );
 
     print("📥 Filtered new transactional SMS: ${_savedMessages.length}");
   }
@@ -98,16 +110,13 @@ class SMSService {
       };
     }).toList();
 
-    final uri = Uri.parse("http://192.168.1.103:5000/api/predict-bulk");
+    final uri = Uri.parse("http://192.168.1.110:5000/api/predict-bulk");
 
     try {
       final response = await http.post(
         uri,
         headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "uid": uid,
-          "messages": smsList,
-        }),
+        body: json.encode({"uid": uid, "messages": smsList}),
       );
 
       if (response.statusCode == 200) {

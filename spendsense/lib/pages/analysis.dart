@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:spendsense/components/analysisButton.dart';
-import 'package:spendsense/components/chartContainer.dart';
+import 'package:spendsense/components/analysis/analysis_buttons.dart';
+import 'package:spendsense/components/analysis/chart.dart';
+import 'package:spendsense/components/analysis/suggestion_box.dart';
+import 'package:spendsense/components/analysis/top_categories.dart';
 import 'package:spendsense/components/navbar.dart';
-import 'package:spendsense/components/suggestions.dart';
-import 'package:spendsense/components/topCategories.dart';
 
 class AnalysisPage extends StatefulWidget {
   const AnalysisPage({super.key});
@@ -23,29 +23,38 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final width = size.width;
-    final height = size.height;
-
     return Scaffold(
-      bottomNavigationBar: MyNavbar(),
-      appBar: AppBar(title: const Text('Spending Analysis')),
+      appBar: AppBar(
+        title: const Text('Spending Analysis'),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: height * 0.02),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: height * 0.02),
+            const Text(
+              'Overview',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
             ChartContainer(isWeekly: isWeekly),
-            SizedBox(height: height * 0.02),
+            const SizedBox(height: 16),
             AnalysisButtons(isWeekly: isWeekly, onToggle: handleToggle),
-            SizedBox(height: height * 0.03),
-            const TopCategories(), // ✅ No uid parameter
-            SizedBox(height: height * 0.03),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 24),
+            const TopCategories(),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 24),
             const SuggestionBox(),
           ],
         ),
       ),
+      bottomNavigationBar: const MyNavbar(),
     );
   }
 }

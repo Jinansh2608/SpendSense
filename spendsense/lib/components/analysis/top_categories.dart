@@ -35,34 +35,27 @@ class _TopCategoriesState extends State<TopCategories> {
           errorMessage = "User not logged in";
           isLoading = false;
         });
-        print("❌ Firebase user is null");
         return;
       }
 
       uid = user.uid;
-      print("✅ Firebase UID: $uid");
       await fetchCategories();
     } catch (e) {
       setState(() {
         errorMessage = "Error fetching Firebase UID: $e";
         isLoading = false;
       });
-      print("❌ Error fetching UID: $e");
     }
   }
 
   Future<void> fetchCategories() async {
     final String url = '$apiBaseUrl/category-spending?uid=$uid';
-    print("📡 Sending GET request to: $url");
 
     try {
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
-
-      print("✅ Response Status Code: ${response.statusCode}");
-      print("✅ Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -72,27 +65,23 @@ class _TopCategoriesState extends State<TopCategories> {
             categories = List<Map<String, dynamic>>.from(data['data']);
             isLoading = false;
           });
-          print("✅ Categories Loaded: $categories");
         } else {
           setState(() {
             errorMessage = 'No data found';
             isLoading = false;
           });
-          print("⚠️ No data found in API response");
         }
       } else {
         setState(() {
           errorMessage = 'Failed to load categories (${response.statusCode})';
           isLoading = false;
         });
-        print("❌ API returned error: ${response.statusCode}");
       }
     } catch (e) {
       setState(() {
         errorMessage = 'Error: $e';
         isLoading = false;
       });
-      print("❌ Exception occurred: $e");
     }
   }
 
@@ -154,7 +143,6 @@ class _TopCategoriesState extends State<TopCategories> {
             child: TextButton(
               onPressed: () {
                 setState(() => expanded = !expanded);
-                print("🔄 Toggled expanded: $expanded");
               },
               child: Text(expanded ? 'Show Less' : 'Show More'),
             ),

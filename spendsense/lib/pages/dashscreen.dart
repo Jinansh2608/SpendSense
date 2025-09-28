@@ -4,7 +4,8 @@ import 'package:spendsense/constants/colors/colors.dart';
 import 'package:spendsense/pages/Insights.dart';
 
 class Dashscreen extends StatelessWidget {
-  const Dashscreen({super.key});
+  final double arcValue;
+  const Dashscreen({super.key, required this.arcValue});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +20,7 @@ class Dashscreen extends StatelessWidget {
         SizedBox(
           width: width * 0.74,
           height: height * 0.25, // adjust height to fit arc & text
-          child: ArcIndicator(value: 0.5),
+          child: ArcIndicator(value: arcValue),
         ),
 
         // Texts + button

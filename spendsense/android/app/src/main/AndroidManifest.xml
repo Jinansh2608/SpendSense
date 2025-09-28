@@ -13,7 +13,8 @@
     <application
         android:label="spendsense"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
 
         <!-- ✅ SMS Receiver for Telephony package -->
         <receiver

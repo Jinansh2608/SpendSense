@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class BudgetService {
-  final String baseUrl = "http://192.168.1.103:5000/api"; // Change for production
+  final String baseUrl =
+      "http://192.168.1.110:5000/api"; // Change for production
 
   /// Fetch all budgets for a user
   Future<List<dynamic>> getBudgets(String uid) async {
@@ -18,14 +19,19 @@ class BudgetService {
   }
 
   /// Create a new budget
-  Future<bool> createBudget(String uid, String name, double cap, String period) async {
+  Future<bool> createBudget(
+    String uid,
+    String name,
+    double cap,
+    String period,
+  ) async {
     final url = Uri.parse('$baseUrl/budgets');
     final body = {
       "uid": uid,
       "name": name,
       "cap": cap,
       "period": period, // Example: "2025-09"
-      "currency": "INR"
+      "currency": "INR",
     };
 
     final response = await http.post(
@@ -38,13 +44,18 @@ class BudgetService {
   }
 
   /// Update an existing budget
-  Future<bool> updateBudget(int id, String name, double cap, String period) async {
+  Future<bool> updateBudget(
+    int id,
+    String name,
+    double cap,
+    String period,
+  ) async {
     final url = Uri.parse('$baseUrl/budgets/$id');
     final body = {
       "name": name,
       "cap": cap,
       "period": period,
-      "currency": "INR"
+      "currency": "INR",
     };
 
     final response = await http.put(

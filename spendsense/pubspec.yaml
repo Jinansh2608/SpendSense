@@ -12,7 +12,7 @@ dependencies:
   telephony: 0.2.0
   google_sign_in: ^6.1.5
   flutter_secure_storage: ^9.0.0
-  intl: ^0.18.1
+  intl: ^0.20.2
   path_provider: ^2.1.2
   path: ^1.8.3
   http: ^1.2.1
@@ -25,6 +25,8 @@ dependencies:
   get: ^4.7.2
   fl_chart: ^1.0.0
   shared_preferences: ^2.2.2
+  meta: ^1.12.0
+  vector_math: ^2.1.4
 
 dev_dependencies:
   flutter_test:

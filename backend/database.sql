@@ -32,6 +32,14 @@ CREATE TABLE bills (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ CREATE TABLE IF NOT EXISTS budgets (
+            id SERIAL PRIMARY KEY,
+            uid VARCHAR(255) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            cap NUMERIC(12, 2) NOT NULL,
+            currency VARCHAR(10) DEFAULT 'INR',
+            period VARCHAR(20) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- Indexes for performance
 CREATE INDEX idx_uid_sms ON sms_records(uid);
 CREATE INDEX idx_uid_bills ON bills(uid);
