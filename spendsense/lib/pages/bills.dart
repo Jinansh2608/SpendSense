@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:spendsense/constants/api_constants.dart';
+
 class BillsPage extends StatefulWidget {
   const BillsPage({super.key});
 
@@ -22,7 +24,6 @@ class _BillsPageState extends State<BillsPage> {
   List<Map<String, dynamic>> bills = [];
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final String baseUrl = "http://192.168.1.110:5000"; // ✅ Your Flask backend IP
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _BillsPageState extends State<BillsPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/bills?uid=$uid&filter=$selectedFilter'),
+        Uri.parse('${ApiConstants.baseUrl}/bills/$uid?filter=$selectedFilter'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

@@ -44,3 +44,10 @@ budget_schema = {
     "currency": {"type": "string", "required": True},
     "period": {"type": "string", "required": True},
 }
+
+update_budget_schema = {
+    "name": {"type": "string", "required": False},
+    "cap": {"type": "float", "required": False},
+    "currency": {"type": "string", "required": False},
+    "period": {"type": "string", "required": False},
+}

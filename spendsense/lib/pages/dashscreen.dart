@@ -27,15 +27,9 @@ class Dashscreen extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              "budget1",
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
+            Text("budget1", style: Theme.of(context).textTheme.labelMedium),
             const SizedBox(height: 6),
-            const Text(
-              "1,234",
-              style: TextStyle(fontSize: 50),
-            ),
+            const Text("1,234", style: TextStyle(fontSize: 50)),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () {

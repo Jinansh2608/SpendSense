@@ -9,6 +9,7 @@ from functools import wraps
 from time import sleep
 from typing import Any, Dict, List, Optional
 
+import psycopg2
 import requests
 from dotenv import load_dotenv
 from flask import Flask, Blueprint, jsonify, request
@@ -23,6 +24,7 @@ from validation import (
     bill_parse_schema,
     bulk_prediction_schema,
     budget_schema,
+    update_budget_schema,
     validate_payload,
 )
 
@@ -56,7 +58,6 @@ HF_API_URL = f"https://api-inference.huggingface.co/models/{HUGGINGFACE_MODEL}"
 
 MAX_LIMIT = int(os.getenv("MAX_LIMIT", "200"))
 DEFAULT_LIMIT = int(os.getenv("DEFAULT_LIMIT", "50"))
-API_KEY = os.getenv("API_KEY")
 
 # === HTTP Session for HuggingFace ===
 def build_http_session() -> requests.Session:
@@ -75,23 +76,6 @@ http = build_http_session()
 # === Database Initialization ===
 with app.app_context():
     init_db()
-
-# === Authentication ===
-def require_api_key(f):
-    """Decorator to protect routes with an API key."""
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not API_KEY:
-            logger.warning("API_KEY is not set. Authentication is disabled.")
-            return f(*args, **kwargs)
-
-        key = request.headers.get("X-API-KEY")
-        if key != API_KEY:
-            return jsonify({"status": "error", "message": "Invalid API key"}), 401
-        return f(*args, **kwargs)
-
-    return decorated_function
 
 # === Helpers ===
 def is_promotional(text: Optional[str]) -> bool:
@@ -246,11 +230,11 @@ health_bp = Blueprint("health", __name__)
 bills_bp = Blueprint("bills", __name__)
 categories_bp = Blueprint("categories", __name__)
 budgets_bp = Blueprint("budgets", __name__)
+wallets_bp = Blueprint("wallets", __name__)
 
 
 # === Prediction Route ===
-@prediction_bp.route("/predictions/bulk", methods=["POST"])
-@require_api_key
+@prediction_bp.route("/predictions-bulk", methods=["POST"])
 def predict_bulk():
     """Processes a bulk of SMS messages and saves them to the database."""
     data = request.get_json(silent=True) or {}
@@ -261,126 +245,140 @@ def predict_bulk():
     uid = data.get("uid")
     messages = data.get("messages", [])
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    timestamp = datetime.utcnow()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        timestamp = datetime.utcnow()
 
-    results = []
-    insert_values = []
-    for msg in messages:
-        sms = msg.get("sms")
-        sender = msg.get("sender")
-        if not sms or is_promotional(sms):
-            continue
-        parsed = parse_sms(sms)
-        amount = float(parsed["amount"]) if parsed.get("amount") else None
-        balance = float(parsed["balance"]) if parsed.get("balance") else None
-        txn_type = parsed.get("txn_type")
-        category = classify_text(sms)
-        insert_values.append(
-            (
-                uid,
-                sms,
-                category,
-                amount,
-                txn_type,
-                parsed.get("mode"),
-                parsed.get("ref_no"),
-                parsed.get("account"),
-                parsed.get("date"),
-                balance,
-                sender,
-                timestamp,
+        results = []
+        insert_values = []
+        for msg in messages:
+            sms = msg.get("sms")
+            sender = msg.get("sender")
+            if not sms or is_promotional(sms):
+                continue
+            parsed = parse_sms(sms)
+            amount = float(parsed["amount"]) if parsed.get("amount") else None
+            balance = float(parsed["balance"]) if parsed.get("balance") else None
+            txn_type = parsed.get("txn_type")
+            category = parsed.get("category", "Other")
+            insert_values.append(
+                (
+                    uid,
+                    sms,
+                    category,
+                    amount,
+                    txn_type,
+                    parsed.get("mode"),
+                    parsed.get("ref_no"),
+                    parsed.get("account"),
+                    parsed.get("date"),
+                    balance,
+                    sender,
+                    timestamp,
+                )
             )
-        )
-        results.append(
-            {
-                "uid": uid,
-                "sms": sms,
-                "sender": sender,
-                "category": category,
-                "amount": amount,
-                "txn_type": txn_type,
-                "mode": parsed.get("mode"),
-                "ref_no": parsed.get("ref_no"),
-                "account": parsed.get("account"),
-                "date": parsed.get("date"),
-                "balance": balance,
-                "created_at": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
-        )
-    if insert_values:
-        cur.executemany(
-            """INSERT INTO sms_records (uid, sms, category, amount, txn_type, mode, ref_no, account, date, balance, sender, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-            insert_values,
-        )
-        conn.commit()
-    
-    cur.close()
-    put_db_connection(conn)
+            results.append(
+                {
+                    "uid": uid,
+                    "sms": sms,
+                    "sender": sender,
+                    "category": category,
+                    "amount": amount,
+                    "txn_type": txn_type,
+                    "mode": parsed.get("mode"),
+                    "ref_no": parsed.get("ref_no"),
+                    "account": parsed.get("account"),
+                    "date": parsed.get("date"),
+                    "balance": balance,
+                    "created_at": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                }
+            )
+        if insert_values:
+            cur.executemany(
+                """INSERT INTO sms_records (uid, sms, category, amount, txn_type, mode, ref_no, account, date, balance, sender, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                insert_values,
+            )
+            conn.commit()
+        
+        cur.close()
 
-    return jsonify({"status": "success", "count": len(results), "data": results}), 200
+        return jsonify({"status": "success", "count": len(results), "data": results}), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error in predict_bulk: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 # === Records Route ===
-@records_bp.route("/users/<uid>/records", methods=["GET"])
-@require_api_key
+@records_bp.route("/records/<uid>", methods=["GET"])
 def get_user_records(uid):
     """Fetches transaction records for a user."""
     limit = clamp_limit(request.args.get("limit", DEFAULT_LIMIT))
     offset = max(0, int(request.args.get("offset", 0)))
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    query = """WITH user_records AS (
-        SELECT * FROM sms_records WHERE uid = %s
-    ),
-    monthly_summary AS (
+        query = """WITH user_records AS (
+            SELECT * FROM sms_records WHERE uid = %s
+        ),
+        monthly_summary AS (
+            SELECT
+                COALESCE(SUM(CASE WHEN txn_type = 'Credit' THEN amount ELSE 0 END), 0) AS monthly_income,
+                COALESCE(SUM(CASE WHEN txn_type = 'Debit' THEN amount ELSE 0 END), 0) AS monthly_expenses
+            FROM user_records
+            WHERE date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE)
+        )
         SELECT
-            COALESCE(SUM(CASE WHEN txn_type = 'Credit' THEN amount ELSE 0 END), 0) AS monthly_income,
-            COALESCE(SUM(CASE WHEN txn_type = 'Debit' THEN amount ELSE 0 END), 0) AS monthly_expenses
+            (SELECT COUNT(*) FROM user_records) AS total_count,
+            (SELECT monthly_income FROM monthly_summary) AS monthly_income,
+            (SELECT monthly_expenses FROM monthly_summary) AS monthly_expenses,
+            id, uid, sms, category, amount, txn_type, mode, ref_no, account, date, balance, created_at
         FROM user_records
-        WHERE date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE)
-    )
-    SELECT
-        (SELECT COUNT(*) FROM user_records) AS total_count,
-        (SELECT monthly_income FROM monthly_summary) AS monthly_income,
-        (SELECT monthly_expenses FROM monthly_summary) AS monthly_expenses,
-        id, uid, sms, category, amount, txn_type, mode, ref_no, account, date, balance, created_at
-    FROM user_records
-    ORDER BY created_at DESC
-    LIMIT %s OFFSET %s;"""
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s;"""
 
-    cur.execute(query, (uid, limit, offset))
-    rows = cur.fetchall()
+        cur.execute(query, (uid, limit, offset))
+        rows = cur.fetchall()
+        cur.close()
 
-    cur.close()
-    put_db_connection(conn)
+        if not rows:
+            return jsonify({"status": "success", "total": 0, "count": 0, "limit": limit, "offset": offset, "data": [], "summary": {"monthlyIncome": 0, "monthlyExpenses": 0}})
 
-    if not rows:
-        return jsonify({"status": "success", "total": 0, "count": 0, "limit": limit, "offset": offset, "data": [], "summary": {"monthlyIncome": 0, "monthlyExpenses": 0}})
+        total_count = rows[0]["total_count"]
+        monthly_income = rows[0]["monthly_income"]
+        monthly_expenses = rows[0]["monthly_expenses"]
 
-    total_count = rows[0]["total_count"]
-    monthly_income = rows[0]["monthly_income"]
-    monthly_expenses = rows[0]["monthly_expenses"]
+        data = [{k: json_safe(v) for k, v in row.items() if k not in ["total_count", "monthly_income", "monthly_expenses"]} for row in rows]
 
-    data = [{k: json_safe(v) for k, v in row.items() if k not in ["total_count", "monthly_income", "monthly_expenses"]} for row in rows]
+        response = {
+            "status": "success",
+            "total": total_count,
+            "count": len(data),
+            "limit": limit,
+            "offset": offset,
+            "data": data,
+            "summary": {
+                "monthlyIncome": json_safe(monthly_income),
+                "monthlyExpenses": json_safe(monthly_expenses),
+            },
+        }
 
-    response = {
-        "status": "success",
-        "total": total_count,
-        "count": len(data),
-        "limit": limit,
-        "offset": offset,
-        "data": data,
-        "summary": {
-            "monthlyIncome": json_safe(monthly_income),
-            "monthlyExpenses": json_safe(monthly_expenses),
-        },
-    }
-
-    return jsonify(response), 200
+        return jsonify(response), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error in get_user_records: {e}")
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 # === Bills Routes ===
@@ -401,7 +399,6 @@ def predict_bill_category(text, sender):
 
 
 @bills_bp.route("/bills/parse", methods=["POST"])
-@require_api_key
 def parse_bills_from_sms():
     """Parses bills from a list of SMS messages."""
     data = request.json
@@ -413,143 +410,175 @@ def parse_bills_from_sms():
     messages = data["messages"]
     new_bills = []
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    for msg in messages:
-        body = msg.get("body", "")
-        sender = msg.get("sender", "")
-        match = re.search(
-            r"(?P<amount>\d+\.?\d*)\s*(?:INR|₹)?(?:\s*is)?\s*(?:due|due date|due on)\s*(?P<date>\d{2}[-/]\d{2}[-/]\d{4})",
-            body,
-            re.IGNORECASE,
-        )
-        if match:
-            category = predict_bill_category(body, sender)
-            bill_id = str(uuid.uuid4())
-            due_date_str = match.group("date").replace("/", "-")
-            due_date = datetime.strptime(due_date_str, "%d-%m-%Y").date()
-            amount = float(match.group("amount"))
-
-            cur.execute(
-                """INSERT INTO bills (id, user_id, name, category, due_date, amount, status, sms_sender, sms_body, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()) ON CONFLICT (id) DO NOTHING""",
-                (
-                    bill_id,
-                    uid,
-                    category,
-                    category,
-                    due_date,
-                    amount,
-                    "Unpaid",
-                    sender,
-                    body,
-                ),
+        for msg in messages:
+            body = msg.get("body", "")
+            sender = msg.get("sender", "")
+            match = re.search(
+                r"(?P<amount>\d+\.?\d*)\s*(?:INR|₹)?(?:\s*is)?\s*(?:due|due date|due on)\s*(?P<date>\d{2}[-/]\d{2}[-/]\d{4})",
+                body,
+                re.IGNORECASE,
             )
+            if match:
+                category = predict_bill_category(body, sender)
+                bill_id = str(uuid.uuid4())
+                due_date_str = match.group("date").replace("/", "-")
+                due_date = datetime.strptime(due_date_str, "%d-%m-%Y").date()
+                amount = float(match.group("amount"))
 
-            new_bills.append(
-                {
-                    "id": bill_id,
-                    "user_id": uid,
-                    "name": category,
-                    "category": category,
-                    "due_date": due_date.isoformat(),
-                    "amount": amount,
-                    "status": "Unpaid",
-                }
-            )
+                cur.execute(
+                    """INSERT INTO bills (id, user_id, name, category, due_date, amount, status, sms_sender, sms_body, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()) ON CONFLICT (id) DO NOTHING""",
+                    (
+                        bill_id,
+                        uid,
+                        category,
+                        category,
+                        due_date,
+                        amount,
+                        "Unpaid",
+                        sender,
+                        body,
+                    ),
+                )
 
-    conn.commit()
-    
-    cur.close()
-    put_db_connection(conn)
+                new_bills.append(
+                    {
+                        "id": bill_id,
+                        "user_id": uid,
+                        "name": category,
+                        "category": category,
+                        "due_date": due_date.isoformat(),
+                        "amount": amount,
+                        "status": "Unpaid",
+                    }
+                )
 
-    return jsonify({"parsed_bills": new_bills})
+        conn.commit()
+        cur.close()
+
+        return jsonify({"parsed_bills": new_bills})
+    except (psycopg2.Error, ValueError) as e:
+        logger.error(f"Error in parse_bills_from_sms: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": "Error parsing bills"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
-@bills_bp.route("/users/<uid>/bills", methods=["GET"])
-@require_api_key
+@bills_bp.route("/bills/<uid>", methods=["GET"])
 def get_bills(uid):
     """Fetches bills for a user, with optional status filtering."""
     filter_status = request.args.get("filter", "All")
+    if filter_status not in ["All", "Paid", "Unpaid"]:
+        return jsonify({"status": "error", "message": "Invalid filter status"}), 400
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    if filter_status == "All":
-        cur.execute(
-            "SELECT * FROM bills WHERE user_id = %s ORDER BY due_date ASC", (uid,)
-        )
-    else:
-        cur.execute(
-            "SELECT * FROM bills WHERE user_id = %s AND status = %s ORDER BY due_date ASC",
-            (uid, filter_status),
-        )
+        if filter_status == "All":
+            cur.execute(
+                "SELECT * FROM bills WHERE user_id = %s ORDER BY due_date ASC", (uid,)
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM bills WHERE user_id = %s AND status = %s ORDER BY due_date ASC",
+                (uid, filter_status),
+            )
 
-    bills = cur.fetchall()
-    
-    cur.close()
-    put_db_connection(conn)
+        bills = cur.fetchall()
+        cur.close()
 
-    return jsonify([dict(row) for row in bills])
+        return jsonify([dict(row) for row in bills])
+    except psycopg2.Error as e:
+        logger.error(f"Database error in get_bills: {e}")
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 # === Category Routes ===
-@categories_bp.route("/users/<uid>/category-spending", methods=["GET"])
-@require_api_key
+@categories_bp.route("/category-spending/<uid>", methods=["GET"])
 def category_spending(uid):
     """Calculates spending per category for a user."""
     txn_type = request.args.get("type")
     period = request.args.get("period")
     sort = request.args.get("sort", "desc").lower()
 
-    query = "SELECT category, SUM(amount) AS total_spent FROM sms_records WHERE uid = %s AND txn_type IN ('Credit', 'Debit')"
-    params = [uid]
+    if txn_type and txn_type not in ["Credit", "Debit"]:
+        return jsonify({"status": "error", "message": "Invalid transaction type"}), 400
+    if period and period not in ["weekly", "monthly"]:
+        return jsonify({"status": "error", "message": "Invalid period"}), 400
+    if sort not in ["asc", "desc"]:
+        return jsonify({"status": "error", "message": "Invalid sort order"}), 400
 
-    if txn_type in ["Credit", "Debit"]:
-        query += " AND txn_type = %s"
-        params.append(txn_type)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    if period == "weekly":
-        query += " AND created_at >= NOW() - INTERVAL '7 days'"
-    elif period == "monthly":
-        query += " AND created_at >= NOW() - INTERVAL '30 days'"
+        query = "SELECT category, SUM(amount) AS total_spent FROM sms_records WHERE uid = %s AND txn_type IN ('Credit', 'Debit')"
+        params = [uid]
 
-    query += " GROUP BY category"
-    query += f" ORDER BY total_spent {('ASC' if sort == 'asc' else 'DESC')}"
+        if txn_type:
+            query += " AND txn_type = %s"
+            params.append(txn_type)
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute(query, tuple(params))
-    results = cur.fetchall()
-    
-    cur.close()
-    put_db_connection(conn)
+        if period == "weekly":
+            query += " AND created_at >= NOW() - INTERVAL '7 days'"
+        elif period == "monthly":
+            query += " AND created_at >= NOW() - INTERVAL '30 days'"
 
-    return jsonify({"status": "success", "data": results})
+        query += " GROUP BY category"
+        query += f" ORDER BY total_spent {('ASC' if sort == 'asc' else 'DESC')}"
+
+        cur.execute(query, tuple(params))
+        results = cur.fetchall()
+        cur.close()
+
+        return jsonify({"status": "success", "data": results})
+    except psycopg2.Error as e:
+        logger.error(f"Database error in category_spending: {e}")
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 # === Budgets Routes ===
-@budgets_bp.route("/users/<uid>/budgets", methods=["GET"])
-@require_api_key
+@budgets_bp.route("/budgets/<uid>", methods=["GET"])
 def get_budgets(uid):
     """Fetches budgets for a user."""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute(
-        "SELECT id, uid, name, cap, currency, period, created_at FROM budgets WHERE uid = %s",
-        (uid,),
-    )
-    budgets = cur.fetchall()
-    
-    cur.close()
-    put_db_connection(conn)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT id, uid, name, cap, currency, period, created_at FROM budgets WHERE uid = %s",
+            (uid,),
+        )
+        budgets = cur.fetchall()
+        cur.close()
 
-    return jsonify({"budgets": [dict(b) for b in budgets]})
+        return jsonify({"budgets": [dict(b) for b in budgets]})
+    except psycopg2.Error as e:
+        logger.error(f"Database error in get_budgets: {e}")
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 @budgets_bp.route("/budgets", methods=["POST"])
-@require_api_key
 def create_budget():
     """Creates a new budget for a user."""
     data = request.json
@@ -563,61 +592,103 @@ def create_budget():
     currency = data.get("currency", "INR")
     period = data.get("period")
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO budgets (uid, name, cap, currency, period) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-        (uid, name, cap, currency, period),
-    )
-    budget_id = cur.fetchone()[0]
-    conn.commit()
-    
-    cur.close()
-    put_db_connection(conn)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO budgets (uid, name, cap, currency, period) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (uid, name, cap, currency, period),
+        )
+        budget_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
 
-    return jsonify({"message": "Budget created", "id": budget_id}), 201
+        return jsonify({"message": "Budget created", "id": budget_id}), 201
+    except psycopg2.Error as e:
+        logger.error(f"Database error in create_budget: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 @budgets_bp.route("/budgets/<int:budget_id>", methods=["PUT"])
-@require_api_key
 def update_budget(budget_id):
     """Updates an existing budget."""
     data = request.json
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        """UPDATE budgets
-        SET name = COALESCE(%s, name), cap = COALESCE(%s, cap), currency = COALESCE(%s, currency), period = COALESCE(%s, period)
-        WHERE id = %s""",
-        (
-            data.get("name"),
-            data.get("cap"),
-            data.get("currency"),
-            data.get("period"),
-            budget_id,
-        ),
-    )
-    conn.commit()
-    
-    cur.close()
-    put_db_connection(conn)
+    errors = validate_payload(data, update_budget_schema)
+    if errors:
+        return jsonify({"status": "error", "message": errors}), 400
 
-    return jsonify({"message": "Budget updated"}), 200
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE budgets
+            SET name = COALESCE(%s, name), cap = COALESCE(%s, cap), currency = COALESCE(%s, currency), period = COALESCE(%s, period)
+            WHERE id = %s""",
+            (
+                data.get("name"),
+                data.get("cap"),
+                data.get("currency"),
+                data.get("period"),
+                budget_id,
+            ),
+        )
+        conn.commit()
+
+        if cur.rowcount == 0:
+            cur.close()
+            return jsonify({"status": "error", "message": "Budget not found"}), 404
+
+        cur.close()
+
+        return jsonify({"message": "Budget updated"}), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error in update_budget: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
 
 
 @budgets_bp.route("/budgets/<int:budget_id>", methods=["DELETE"])
-@require_api_key
 def delete_budget(budget_id):
     """Deletes a budget."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM budgets WHERE id = %s", (budget_id,))
-    conn.commit()
-    
-    cur.close()
-    put_db_connection(conn)
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM budgets WHERE id = %s", (budget_id,))
+        conn.commit()
 
-    return jsonify({"message": "Budget deleted"}), 200
+        if cur.rowcount == 0:
+            cur.close()
+            return jsonify({"status": "error", "message": "Budget not found"}), 404
+
+        cur.close()
+
+        return jsonify({"message": "Budget deleted"}), 200
+    except psycopg2.Error as e:
+        logger.error(f"Database error in delete_budget: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    finally:
+        if conn:
+            put_db_connection(conn)
+
+# === Wallets Route ===
+@wallets_bp.route("/wallets/<uid>", methods=["GET"])
+def get_wallets(uid):
+    """Fetches wallets for a user."""
+    return jsonify({"status": "success", "message": "Wallets endpoint not implemented yet"})
 
 
 # === Health Route ===
@@ -626,6 +697,13 @@ def health_check():
     """Health check endpoint."""
     return jsonify({"status": "ok", "message": "✅ SpendSense Server is running!"})
 
+@app.route('/api/', methods=['GET'])
+def api_root():
+    return jsonify({
+        "name": "SpendSense API",
+        "version": "1.0",
+        "description": "API for personal finance management."
+    })
 
 # Register Blueprints
 app.register_blueprint(prediction_bp, url_prefix="/api")
@@ -634,6 +712,7 @@ app.register_blueprint(health_bp, url_prefix="/api")
 app.register_blueprint(bills_bp, url_prefix="/api")
 app.register_blueprint(categories_bp, url_prefix="/api")
 app.register_blueprint(budgets_bp, url_prefix="/api")
+app.register_blueprint(wallets_bp, url_prefix="/api")
 
 
 @app.after_request

@@ -3,6 +3,9 @@ import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger("spendsense.database")
 
@@ -44,53 +47,10 @@ def init_db():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Updated sms_records table with a 'vendor' column
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS sms_records (
-                id SERIAL PRIMARY KEY,
-                uid TEXT NOT NULL,
-                sms TEXT NOT NULL,
-                category TEXT,
-                amount NUMERIC,
-                txn_type TEXT,
-                mode TEXT,
-                ref_no TEXT,
-                account TEXT,
-                date TEXT,
-                balance NUMERIC,
-                sender TEXT,
-                vendor TEXT, 
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS bills (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                category TEXT NOT NULL,
-                due_date DATE NOT NULL,
-                amount NUMERIC NOT NULL,
-                status TEXT NOT NULL,
-                sms_sender TEXT,
-                sms_body TEXT,
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            );
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS budgets (
-                id SERIAL PRIMARY KEY,
-                uid TEXT NOT NULL,
-                name TEXT NOT NULL,
-                cap NUMERIC NOT NULL,
-                currency TEXT NOT NULL,
-                period TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-        """)
+        with open('database.sql', 'r') as f:
+            cur.execute(f.read())
         conn.commit()
-        logger.info("✅ Database initialized successfully.")
+        logger.info("✅ Database initialized successfully from database.sql.")
     except Exception as e:
         logger.error(f"❌ DB Init Failed: {e}")
         if conn: conn.rollback()

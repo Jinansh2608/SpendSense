@@ -2,6 +2,7 @@ import 'package:telephony/telephony.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:spendsense/constants/api_constants.dart';
 
 class SMSService {
   final Telephony telephony = Telephony.instance;
@@ -94,6 +95,31 @@ class SMSService {
     );
 
     print("📥 Filtered new transactional SMS: ${_savedMessages.length}");
+
+    // Save messages to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final List<Map<String, dynamic>> messagesJson = _savedMessages
+        .map(
+          (msg) => {
+            'id': msg.id,
+            'address': msg.address,
+            'body': msg.body,
+            'date': msg.date,
+          },
+        )
+        .toList();
+    await prefs.setString('transactional_sms', json.encode(messagesJson));
+  }
+
+  /// Fetches SMS from storage
+  Future<List<Map<String, dynamic>>> getSmsFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? messagesString = prefs.getString('transactional_sms');
+    if (messagesString != null) {
+      final List<dynamic> messagesJson = json.decode(messagesString);
+      return messagesJson.cast<Map<String, dynamic>>().toList();
+    }
+    return [];
   }
 
   /// Sends saved transactional SMS to Flask API with UID
@@ -110,7 +136,7 @@ class SMSService {
       };
     }).toList();
 
-    final uri = Uri.parse("http://192.168.1.110:5000/api/predict-bulk");
+    final uri = Uri.parse("${ApiConstants.baseUrl}/predictions/bulk");
 
     try {
       final response = await http.post(

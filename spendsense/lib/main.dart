@@ -10,12 +10,15 @@ import 'package:spendsense/pages/dashboard.dart';
 import 'package:spendsense/pages/login_page.dart';
 import 'package:spendsense/components/sms_service.dart';
 
+import 'package:spendsense/components/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NotificationService().init(); // Initialize notification service
   Get.put(AuthController()); 
   runApp(const PayNest());
 }

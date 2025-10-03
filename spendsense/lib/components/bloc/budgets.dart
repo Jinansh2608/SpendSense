@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:spendsense/constants/api_constants.dart';
 
 class BudgetService {
-  final String baseUrl =
-      "http://192.168.1.110:5000/api"; // Change for production
+  final String baseUrl = ApiConstants.baseUrl;
 
   /// Fetch all budgets for a user
   Future<List<dynamic>> getBudgets(String uid) async {

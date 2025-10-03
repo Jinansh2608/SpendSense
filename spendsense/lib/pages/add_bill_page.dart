@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:spendsense/constants/api_constants.dart';
+
 class AddBillPage extends StatefulWidget {
   const AddBillPage({super.key});
 
@@ -18,22 +20,20 @@ class _AddBillPageState extends State<AddBillPage> {
   String _status = 'Unpaid';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final String baseUrl =
-      "http://192.168.1.110:5000"; // ✅ Your Flask backend IP
 
   Future<void> _addBill() async {
     if (_formKey.currentState!.validate()) {
       final uid = _auth.currentUser?.uid;
       if (uid == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not logged in')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not logged in')));
         return;
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/bills'),
+        Uri.parse('${ApiConstants.baseUrl}/bills'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'uid': uid,
@@ -58,9 +58,7 @@ class _AddBillPageState extends State<AddBillPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Bill'),
-      ),
+      appBar: AppBar(title: const Text('Add New Bill')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -93,7 +91,9 @@ class _AddBillPageState extends State<AddBillPage> {
               ),
               TextFormField(
                 controller: _dueDateController,
-                decoration: const InputDecoration(labelText: 'Due Date (YYYY-MM-DD)'),
+                decoration: const InputDecoration(
+                  labelText: 'Due Date (YYYY-MM-DD)',
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a due date';

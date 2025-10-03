@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart'; // ✅ For Firebase UID
+import 'package:spendsense/constants/api_constants.dart';
 
 class TopCategories extends StatefulWidget {
   const TopCategories({super.key});
@@ -15,8 +16,6 @@ class _TopCategoriesState extends State<TopCategories> {
   bool isLoading = true;
   List<Map<String, dynamic>> categories = [];
   String? errorMessage;
-
-  static const String apiBaseUrl = "http://192.168.1.110:5000/api";
 
   String? uid;
 
@@ -49,7 +48,7 @@ class _TopCategoriesState extends State<TopCategories> {
   }
 
   Future<void> fetchCategories() async {
-    final String url = '$apiBaseUrl/category-spending?uid=$uid';
+    final String url = '${ApiConstants.baseUrl}/category-spending/$uid';
 
     try {
       final response = await http.get(

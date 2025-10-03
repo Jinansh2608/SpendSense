@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:spendsense/constants/colors/colors.dart';
 
+import 'package:spendsense/constants/api_constants.dart';
+
 class ManageCategoriesPage extends StatefulWidget {
   const ManageCategoriesPage({super.key});
 
@@ -12,7 +14,6 @@ class ManageCategoriesPage extends StatefulWidget {
 }
 
 class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
-  final String baseUrl = "http://192.168.1.110:5000/api"; // API Base URL
   List<dynamic> _categories = [];
   bool _isLoading = true;
 
@@ -29,7 +30,9 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/categories/$_userId'));
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/categories/$_userId'),
+      );
       if (response.statusCode == 200) {
         setState(() => _categories = jsonDecode(response.body)['categories']);
       } else {
@@ -46,7 +49,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
     if (name.isEmpty || _userId == null) return;
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/categories'),
+        Uri.parse('${ApiConstants.baseUrl}/categories'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'name': name, 'user_id': _userId}),
       );
@@ -64,7 +67,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
     if (newName.isEmpty) return;
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/categories/$id'),
+        Uri.parse('${ApiConstants.baseUrl}/categories/$id'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'name': newName}),
       );
@@ -80,7 +83,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
 
   Future<void> _deleteCategory(String id) async {
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/categories/$id'));
+      final response = await http.delete(Uri.parse('${ApiConstants.baseUrl}/categories/$id'));
       if (response.statusCode == 200) {
         _fetchCategories(); // Refresh list
       } else {
@@ -93,7 +96,9 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
 
   void _showError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -121,17 +126,22 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
                   final category = _categories[index];
                   return ListTile(
                     leading: Icon(Icons.label_outline, color: Ycolor.gray10),
-                    title: Text(category['name'], style: TextStyle(color: Ycolor.whitee)),
+                    title: Text(
+                      category['name'],
+                      style: TextStyle(color: Ycolor.whitee),
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: Icon(Icons.edit, color: Ycolor.gray60),
-                          onPressed: () => _showCategoryDialog(category: category),
+                          onPressed: () =>
+                              _showCategoryDialog(category: category),
                         ),
                         IconButton(
                           icon: Icon(Icons.delete, color: Colors.redAccent),
-                          onPressed: () => _deleteCategory(category['id'].toString()),
+                          onPressed: () =>
+                              _deleteCategory(category['id'].toString()),
                         ),
                       ],
                     ),
@@ -150,7 +160,10 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Ycolor.gray70,
-        title: Text(isEditing ? 'Edit Category' : 'New Category', style: TextStyle(color: Ycolor.whitee)),
+        title: Text(
+          isEditing ? 'Edit Category' : 'New Category',
+          style: TextStyle(color: Ycolor.whitee),
+        ),
         content: TextField(
           controller: textController,
           autofocus: true,
@@ -158,7 +171,9 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
           decoration: InputDecoration(
             labelText: 'Category Name',
             labelStyle: TextStyle(color: Ycolor.gray10),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Ycolor.primarycolor)),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Ycolor.primarycolor),
+            ),
           ),
         ),
         actions: [
@@ -175,7 +190,10 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
               }
               Navigator.pop(context);
             },
-            child: Text(isEditing ? 'Save' : 'Add', style: TextStyle(color: Ycolor.primarycolor)),
+            child: Text(
+              isEditing ? 'Save' : 'Add',
+              style: TextStyle(color: Ycolor.primarycolor),
+            ),
           ),
         ],
       ),
